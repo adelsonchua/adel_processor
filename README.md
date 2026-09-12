@@ -292,28 +292,28 @@ ADEL is a single-cycle datapath. The current instruction is decoded combinationa
 
 ```mermaid
 flowchart LR
-    PC["8-bit PC"] --> IMEM["Instruction memory / ROM"]
+    PC["8-bit PC"] --> IMEM["Instruction ROM"]
     IMEM --> INST["16-bit instruction"]
-    INST --> DEC["Field split<br/>W · OPC · RS · DEST · SRC1 · IMM/SRC2"]
+    INST --> DEC["Instruction fields: W, OPC, RS, DEST, SRC1, IMM/SRC2"]
 
-    DEC -->|SRC1| RF["4 × 8-bit register file"]
+    DEC -->|SRC1| RF["4 x 8-bit register file"]
     DEC -->|SRC2| RF
-    RF -->|operand A| ALU["ADD / SUB / AND / OR"]
-    RF -->|register operand B| BMUX{"RS"}
+    RF -->|operand_A| ALU["ADD / SUB / AND / OR"]
+    RF -->|register_operand_B| BMUX{"Select operand B"}
     DEC -->|IMM8| BMUX
-    BMUX -->|operand B| ALU
+    BMUX -->|operand_B| ALU
 
     DEC -->|OPC| ALU
     ALU -->|result| RF
-    DEC -->|W, DEST| RF
+    DEC -->|W_DEST| RF
 
-    RF -->|R[SRC1]| BCMP["Compare against 0"]
-    DEC -->|W=0, OPC| BCMP
+    RF -->|SRC1_value| BCMP["Compare with zero"]
+    DEC -->|branch_OPC| BCMP
 
     PC --> INC["PC + 1"]
     PC --> BADD["PC + IMM8"]
     DEC -->|IMM8| BADD
-    INC --> PCMUX{"branch taken?"}
+    INC --> PCMUX{"Branch taken?"}
     BADD --> PCMUX
     BCMP --> PCMUX
     PCMUX --> PC
