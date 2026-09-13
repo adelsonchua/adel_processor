@@ -41,6 +41,8 @@ All four registers are ordinary writable registers; there is no hardwired zero r
 
 # Instruction Set Architecture
 
+![ADEL processor instruction encoding](adel_encoding.png)
+
 ## 16-bit Instruction Format
 
 Every instruction uses the same 16-bit format.
