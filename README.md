@@ -290,34 +290,7 @@ A program can stop useful execution by entering a self-branch whose condition is
 
 ADEL is a single-cycle datapath. The current instruction is decoded combinationally, its operands are read from the register file, the selected operation or branch condition is evaluated, and architectural state is updated on the next rising clock edge.
 
-```mermaid
-flowchart LR
-    PC["8-bit PC"] --> IMEM["Instruction ROM"]
-    IMEM --> INST["16-bit instruction"]
-    INST --> DEC["Instruction fields: W, OPC, RS, DEST, SRC1, IMM/SRC2"]
-
-    DEC -->|SRC1| RF["4 x 8-bit register file"]
-    DEC -->|SRC2| RF
-    RF -->|operand_A| ALU["ADD / SUB / AND / OR"]
-    RF -->|register_operand_B| BMUX{"Select operand B"}
-    DEC -->|IMM8| BMUX
-    BMUX -->|operand_B| ALU
-
-    DEC -->|OPC| ALU
-    ALU -->|result| RF
-    DEC -->|W_DEST| RF
-
-    RF -->|SRC1_value| BCMP["Compare with zero"]
-    DEC -->|branch_OPC| BCMP
-
-    PC --> INC["PC + 1"]
-    PC --> BADD["PC + IMM8"]
-    DEC -->|IMM8| BADD
-    INC --> PCMUX{"Branch taken?"}
-    BADD --> PCMUX
-    BCMP --> PCMUX
-    PCMUX --> PC
-```
+![ADEL processor datapath](adelproc.png)
 
 ## Instruction Fetch and Program Counter
 
