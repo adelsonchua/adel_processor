@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADEL Processor Simulator</title>
+<style>
+:root{
+  --bg:#f5f6f8;
+  --panel:#ffffff;
+  --text:#1f2328;
+  --muted:#667085;
+  --border:#d0d7de;
+  --accent:#7b1113;
+  --accent-soft:#fff2f2;
+  --probe:#8a5a00;
+  --probe-bg:rgba(255,247,220,.96);
+  --probe-border:#c28a18;
+  --active:#d97706;
+  --good:#067647;
+  --bad:#b42318;
+  --rom-active:#fff0b3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.42 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button,select,input{
+  min-height:38px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:#fff;
+  color:var(--text);
+}
+button{padding:0 12px;cursor:pointer;font-weight:650}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{
+  outline:3px solid rgba(123,17,19,.20);
+  outline-offset:2px;
+}
+header{
+  background:var(--accent);
+  color:#fff;
+  border-bottom:1px solid #5f0d0f;
+  padding:10px 18px 9px;
+}
+.header-inner{
+  width:100%;
+  max-width:none;
+  margin:0;
+  display:block;
+}
+h1{
+  font-size:30px;
+  line-height:1.08;
+  margin:0 0 4px;
+  font-weight:500;
+  letter-spacing:.15px;
+}
+.subtitle{
+  color:rgba(255,255,255,.95);
+  font-size:14px;
+  line-height:1.28;
+  margin-top:1px;
+}
+.credit{
+  color:rgba(255,255,255,.78);
+  font-size:11px;
+  line-height:1.25;
+  margin-top:3px;
+}
+.app{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:6px;
+  display:block;
+}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.panel-head{
+  min-height:46px;
+  padding:9px 11px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+.panel-head h2,.panel-head h3{margin:0;font-size:18px}
+.panel-body{padding:9px;min-width:0}
+.top-panels{
+  display:grid;
+  grid-template-columns:minmax(360px,1.45fr) minmax(300px,.95fr) minmax(300px,1.05fr) minmax(360px,1.35fr);
+  gap:6px;
+  margin-bottom:4px;
+  align-items:stretch;
+}
+.top-panels > .panel{min-width:0}
+.top-panels .panel-body{height:calc(100% - 46px);font-size:15px}
+.top-panels button,.top-panels select{font-size:15px}
+.top-panels .small{font-size:13px}
+.top-panels .status{font-size:15px}
+.top-panels .machine th,.top-panels .trace th{font-size:14px}
+.top-panels .machine td,.top-panels .trace td{font-size:16px}
+.top-panels .editor{font-size:16px}
+
+.sidebar{display:contents}
+.editor{
+  width:100%;
+  min-height:185px;
+  height:185px;
+  resize:vertical;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px;
+  background:#111827;
+  color:#e5e7eb;
+  font:15px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  tab-size:4;
+}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;justify-content:flex-end;align-items:center}
+
+.animation-switch{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  cursor:pointer;
+  user-select:none;
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
+}
+.animation-switch input{
+  position:absolute;
+  opacity:0;
+  width:1px;
+  height:1px;
+  pointer-events:none;
+}
+.switch-track{
+  position:relative;
+  display:inline-block;
+  width:46px;
+  height:25px;
+  border-radius:999px;
+  background:#cfd4dc;
+  border:1px solid #b8bec8;
+  transition:background .18s ease,border-color .18s ease;
+  flex:0 0 auto;
+}
+.switch-knob{
+  position:absolute;
+  width:19px;
+  height:19px;
+  left:2px;
+  top:2px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.28);
+  transition:transform .18s ease;
+}
+.animation-switch input:checked + .switch-track{
+  background:var(--accent);
+  border-color:var(--accent);
+}
+.animation-switch input:checked + .switch-track .switch-knob{
+  transform:translateX(21px);
+}
+.animation-switch input:focus-visible + .switch-track{
+  outline:3px solid rgba(123,17,19,.20);
+  outline-offset:2px;
+}
+
+.status{
+  margin-top:8px;
+  padding:8px 9px;
+  font-size:13px;
+  border-radius:7px;
+  background:#f8fafc;
+  color:var(--muted);
+  min-height:34px;
+}
+.status.good{background:#ecfdf3;color:var(--good)}
+.status.bad{background:#fef3f2;color:var(--bad)}
+.machine-wrap{height:245px;max-height:245px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse}
+.machine th,.machine td,.trace th,.trace td{
+  border-bottom:1px solid var(--border);
+  padding:6px 7px;
+  text-align:left;
+  vertical-align:top;
+}
+.machine th,.trace th{
+  position:sticky;top:0;z-index:1;
+  background:#f8fafc;
+  color:var(--muted);
+  font-size:13px;
+}
+.machine td{font-size:14px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.machine tr.current{background:#fff7ed}
+.machine tr.current td:first-child{box-shadow:inset 3px 0 0 var(--active)}
+.state-grid{
+  height:245px;
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-rows:repeat(5,1fr);
+  gap:7px;
+}
+.state{
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 13px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  text-align:left;
+}
+.state .k{font-size:17px;color:var(--muted);font-weight:850}
+.state .v{font:900 18px/1.15 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:right}
+@keyframes registerFlash{
+  0%{background:#fff2b8;box-shadow:0 0 0 3px rgba(217,119,6,.32)}
+  45%{background:#ffe79a;box-shadow:0 0 0 5px rgba(217,119,6,.16)}
+  100%{background:#fff;box-shadow:none}
+}
+.state.register-flash{
+  animation:registerFlash .72s ease-out;
+}
+.datapath-panel{min-width:0;width:100%}
+.datapath-toolbar{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex-wrap:wrap;
+}
+.datapath-toolbar .spacer{flex:1}
+.example-picker{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:15px;
+  font-weight:700;
+  color:var(--muted);
+}
+.example-picker select{min-width:145px}
+.datapath-scroll{
+  min-height:680px;
+  max-height:none;
+  overflow:auto;
+  background:#fff;
+  padding:8px;
+  text-align:center;
+}
+.stage{
+  position:relative;
+  width:80%;
+  min-width:0;
+  margin:0 auto;
+  user-select:none;
+  isolation:isolate;
+  overflow:visible;
+  background:#fff;
+}
+.stage img{
+  position:relative;
+  z-index:0;
+  display:block;
+  width:100%;
+  height:auto;
+  max-width:100%;
+  opacity:1;
+  pointer-events:none;
+}
+.overlay{
+  position:absolute;
+  inset:0;
+  z-index:1000;
+  display:block;
+  visibility:visible;
+  pointer-events:none;
+  overflow:visible;
+}
+.probe-lines{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  z-index:1029;
+  pointer-events:none;
+}
+@keyframes probeFlash{
+  0%{
+    background:#fff3a6;
+    border-color:#d97706;
+    color:#7c2d12;
+    box-shadow:0 0 0 4px rgba(217,119,6,.38), 0 0 18px rgba(217,119,6,.35);
+    transform:translate(-50%,-50%) scale(1.18);
+  }
+  45%{
+    background:#ffe28a;
+    border-color:#b45309;
+    color:#7c2d12;
+    box-shadow:0 0 0 6px rgba(217,119,6,.18), 0 0 12px rgba(217,119,6,.22);
+    transform:translate(-50%,-50%) scale(1.08);
+  }
+  100%{
+    background:var(--probe-bg);
+    border-color:var(--probe-border);
+    color:var(--probe);
+    box-shadow:0 1px 3px rgba(0,0,0,.18);
+    transform:translate(-50%,-50%) scale(1);
+  }
+}
+.probe-value.probe-flash{
+  animation:probeFlash .72s ease-out;
+}
+.probe-value{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  min-height:0;
+  padding:3px 6px;
+  border:1px solid var(--probe-border);
+  border-radius:999px;
+  background:var(--probe-bg);
+  color:var(--probe);
+  white-space:nowrap;
+  font-weight:800;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  line-height:1.15;
+  pointer-events:auto;
+  cursor:help;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);
+  z-index:1032;
+}
+.probe-extension{
+  position:absolute;
+  height:0;
+  border-top-style:solid;
+  border-top-color:var(--probe-border);
+  transform-origin:0 50%;
+  pointer-events:none;
+  z-index:1030;
+}
+.probe-array{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  overflow:hidden;
+  border:1px solid var(--probe-border);
+  background:rgba(255,255,255,.90);
+  z-index:1031;
+  pointer-events:none;
+}
+.rom-grid{
+  width:100%;height:100%;
+  display:grid;
+  gap:1px;
+  background:rgba(100,100,100,.35);
+}
+.rom-cell{
+  min-width:0;min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:rgba(255,255,255,.92);
+  color:#2f3540;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  line-height:1;
+}
+.rom-cell.current{
+  background:var(--rom-active);
+  color:#7c2d12;
+  font-weight:900;
+  box-shadow:inset 0 0 0 2px var(--active);
+}
+.image-error[hidden]{display:none!important}
+.image-error{
+  width:900px;
+  min-height:500px;
+  display:grid;
+  place-items:center;
+  padding:40px;
+  color:var(--bad);
+  text-align:center;
+  border:2px dashed #d6a8a5;
+  background:#fff;
+}
+.trace-panel{min-width:0}
+.trace tr.current-cycle td{
+  background:#fff7ed;
+  font-weight:750;
+}
+.trace tr.current-cycle td:first-child{
+  box-shadow:inset 3px 0 0 var(--active);
+}
+.trace-wrap{height:245px;max-height:245px;overflow:auto}
+.small{font-size:11px;color:var(--muted)}
+@media(max-width:1450px){
+  .top-panels{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:820px){
+  .stage{width:96%}
+  .top-panels{grid-template-columns:1fr}
+  .editor{height:220px}
+  .machine-wrap,.trace-wrap{height:220px;max-height:220px}
+  .datapath-scroll{max-height:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <h1>ADEL Processor Simulator</h1>
+    <div class="subtitle">
+      ADEL: Architecture Design that's Easy to Learn · 16-bit instructions · 8-bit datapath · single-cycle execution<br>
+      Designed for EEE 113: Introduction to Electrical and Electronics Engineering Systems (Computing component)
+    </div>
+    <div class="credit">Processor architecture, assembler, and simulator developed by Adelson Chua</div>
+  </div>
+</header>
+
+<main class="app" id="app">
+  <div class="top-panels">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Assembly</h2>
+        <div class="example-picker">
+          <span>Load example</span>
+          <select id="exampleSelect" aria-label="Load example">
+            <option value="multiply">Multiply</option>
+            <option value="divide">Divide</option>
+            <option value="fibonacci">Fibonacci</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel-body">
+        <textarea id="source" class="editor" spellcheck="false" aria-label="ADEL assembly source"></textarea>
+        <div class="controls">
+          <label class="animation-switch"
+                 title="Turn datapath probe flash animations on or off. Architectural-state register flashes remain enabled.">
+            <span class="animation-switch-label">Datapath animations</span>
+            <input type="checkbox" id="probeAnimationToggle" checked aria-label="Datapath animations">
+            <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+          </label>
+          <button type="button" id="resetBtn"
+                  title="Reset the PC and all four registers to zero without changing the assembled program.">Reset</button>
+          <button type="button" class="primary" id="stepBtn"
+                  title="Execute one processor cycle and advance to the next instruction.">Step cycle</button>
+        </div>
+        <div id="asmStatus" class="status" role="status" aria-live="polite">Live assembler ready.</div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Architectural state</h3></div>
+      <div class="panel-body">
+        <div class="state-grid">
+          <div class="state"><div class="k">PC</div><div class="v" id="stPC">00</div></div>
+          <div class="state"><div class="k">R0</div><div class="v" id="stR0">00</div></div>
+          <div class="state"><div class="k">R1</div><div class="v" id="stR1">00</div></div>
+          <div class="state"><div class="k">R2</div><div class="v" id="stR2">00</div></div>
+          <div class="state"><div class="k">R3</div><div class="v" id="stR3">00</div></div>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Machine code</h3></div>
+      <div class="panel-body">
+        <div class="machine-wrap">
+          <table class="machine">
+            <thead><tr><th>Addr</th><th>Hex</th><th>Assembly</th></tr></thead>
+            <tbody id="machineBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <section class="panel trace-panel">
+      <div class="panel-head"><h3>Execution trace</h3></div>
+      <div class="trace-wrap">
+        <table class="trace">
+          <thead><tr><th>Cycle</th><th>PC</th><th>Instruction</th><th>Effect at edge</th></tr></thead>
+          <tbody id="traceBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel datapath-panel">
+    <div class="datapath-scroll" id="datapathScroll">
+      <div class="stage" id="stage">
+        <img id="datapathImage" alt="ADEL processor datapath">
+        <div id="overlay" class="overlay"></div>
+      </div>
+      <div id="imageError" class="image-error" hidden>
+        The datapath image could not be loaded from its configured URL.
+      </div>
+    </div>
+  </section>
+</main>
+
+<script id="probeMap" type="application/json">{"version":4,"imageSrc":"https://raw.githubusercontent.com/adelsonchua/adel_processor/main/adelproc.png","imageKind":"url","probes":[{"id":"probe_1","type":"array","label":"Instruction ROM","signal":"instructionMemory","format":"hex","width":16,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.2839506172839506,"anchorY":0.29975547082228116,"x":0.315289648622982,"y":0.5597024204244032,"rows":17,"cols":4,"boxW":0.09,"boxH":0.63},{"id":"probe_2","type":"value","label":"PC","signal":"PC","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.2006172839506173,"anchorY":0.1392780172413793,"x":0.2006172839506173,"y":0.09816395888594165},{"id":"probe_3","type":"value","label":"OffsetSel","signal":"OffsetSel","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.058167141500474834,"anchorY":0.3395432692307692,"x":0.058167141500474834,"y":0.3395432692307692},{"id":"probe_4","type":"value","label":"EQtrue","signal":"EQtrue","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.06623931623931624,"anchorY":0.47880056366047746,"x":0.06623931623931624,"y":0.5159358421750663},{"id":"probe_5","type":"value","label":"NEtrue","signal":"NEtrue","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.10802469135802469,"anchorY":0.47747430371352784,"x":0.10849952516619184,"y":0.5146095822281167},{"id":"probe_6","type":"value","label":"LTtrue","signal":"LTtrue","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.15123456790123457,"anchorY":0.47747430371352784,"x":0.1517094017094017,"y":0.5146095822281167},{"id":"probe_7","type":"value","label":"GTtrue","signal":"GTtrue","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.19444444444444445,"anchorY":0.47349552387267907,"x":0.19444444444444445,"y":0.5119570623342176},{"id":"probe_8","type":"value","label":"Inst","signal":"Inst","format":"hex","width":16,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.41524216524216523,"anchorY":0.3806573275862069,"x":0.4560778727445394,"y":0.3806573275862069},{"id":"probe_9","type":"value","label":"offset","signal":"offset","format":"signed","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.08285849952516619,"anchorY":0.12203663793103449,"x":0.08333333333333333,"y":0.06765998010610079},{"id":"probe_10","type":"value","label":"OP_branch","signal":"OP","format":"binary","width":2,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.09615384615384616,"anchorY":0.7440525530503979,"x":0.0966286799620133,"y":0.7095697944297082},{"id":"probe_11","type":"value","label":"WE","signal":"WE","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4214150047483381,"anchorY":0.45758040450928383,"x":0.42806267806267806,"y":0.47880056366047746},{"id":"probe_12","type":"value","label":"OP_0","signal":"OP","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4252136752136752,"anchorY":0.5398085212201591,"x":0.42568850902184235,"y":0.5398085212201591},{"id":"probe_13","type":"value","label":"RegSel","signal":"RegSel","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.42568850902184235,"anchorY":0.5994902188328912,"x":0.4275878442545109,"y":0.5968376989389921},{"id":"probe_14","type":"value","label":"Dest","signal":"Dest","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.42568850902184235,"anchorY":0.6591719164456233,"x":0.42568850902184235,"y":0.6578456564986738},{"id":"probe_15","type":"value","label":"SRC1","signal":"SRC1","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.42473884140550805,"anchorY":0.7175273541114059,"x":0.42568850902184235,"y":0.7175273541114059},{"id":"probe_16","type":"value","label":"SRC2","signal":"SRC2","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4252136752136752,"anchorY":0.7785353116710876,"x":0.42568850902184235,"y":0.7772090517241379},{"id":"probe_17","type":"value","label":"CONST","signal":"CONST","format":"hex","width":8,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4237891737891738,"anchorY":0.8382170092838196,"x":0.4211059215627084,"y":0.837437130648123},{"id":"probe_18","type":"value","label":"WEprime","signal":"WEprime","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.11324786324786325,"anchorY":0.7997554708222812,"x":0.11324786324786325,"y":0.8223018899204244},{"id":"probe_19","type":"value","label":"R0","signal":"R0","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.6284425451092118,"anchorY":0.12468915782493369,"x":0.6289173789173789,"y":0.08224883952254641},{"id":"probe_20","type":"value","label":"R3","signal":"R3","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.6284425451092118,"anchorY":0.7175273541114059,"x":0.6279677113010447,"y":0.6777395557029178},{"id":"probe_21","type":"value","label":"R2","signal":"R2","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.6289173789173789,"anchorY":0.5212408819628647,"x":0.629392212725546,"y":0.47880056366047746},{"id":"probe_22","type":"value","label":"R1","signal":"R1","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.629392212725546,"anchorY":0.3223018899204244,"x":0.629392212725546,"y":0.27986157161803715},{"id":"probe_23","type":"value","label":"DataWrite","signal":"DataWrite","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.5364909781576448,"anchorY":0.8713735079575596,"x":0.5614909781576448,"y":0.8713735079575596},{"id":"probe_24","type":"value","label":"WE0","signal":"WE0","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.5776353276353277,"anchorY":0.16049817639257294,"x":0.5847578347578347,"y":0.16049817639257294},{"id":"probe_25","type":"value","label":"WE1","signal":"WE1","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.5885565052231719,"anchorY":0.36076342838196285,"x":0.5847578347578347,"y":0.3620896883289125},{"id":"probe_26","type":"value","label":"WE2","signal":"WE2","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.5838081671415005,"anchorY":0.5583761604774535,"x":0.5847578347578347,"y":0.5597024204244032},{"id":"probe_27","type":"value","label":"WE3","signal":"WE3","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.5852326685660019,"anchorY":0.7586414124668435,"x":0.5847578347578347,"y":0.7586414124668435},{"id":"probe_28","type":"value","label":"OP1","signal":"OP1","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.8458373385843275,"anchorY":0.16049125529726874,"x":0.8458373385843275,"y":0.08887321816199022},{"id":"probe_29","type":"value","label":"OP2","signal":"OP2","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.8410890005026561,"anchorY":0.6812693952565484,"x":0.8407724059884705,"y":0.7555399522857261},{"id":"probe_30","type":"value","label":"SRC1_1","signal":"SRC1","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.7134377967711301,"anchorY":0.24140003315649866,"x":0.7134377967711301,"y":0.24140003315649866},{"id":"probe_31","type":"value","label":"SRC2_1","signal":"SRC2","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.7139126305792972,"anchorY":0.6167315981432361,"x":0.7139126305792972,"y":0.6167315981432361},{"id":"probe_32","type":"value","label":"OP1_1","signal":"OP1","format":"hex","width":8,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.7561728395061729,"anchorY":0.2506838527851459,"x":0.7571225071225072,"y":0.23874751326259946},{"id":"probe_33","type":"value","label":"GT","signal":"GT","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.8406932573599241,"anchorY":0.2016122347480106,"x":0.8411680911680912,"y":0.2016122347480106},{"id":"probe_34","type":"value","label":"NE","signal":"NE","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.8397435897435898,"anchorY":0.2811878315649867,"x":0.8411680911680912,"y":0.2811878315649867},{"id":"probe_35","type":"value","label":"EQ","signal":"EQ","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.8402184235517569,"anchorY":0.3620896883289125,"x":0.8416429249762583,"y":0.3620896883289125},{"id":"probe_36","type":"value","label":"LT","signal":"LT","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.8387939221272555,"anchorY":0.4416652851458886,"x":0.8397435897435898,"y":0.4416652851458886},{"id":"probe_37","type":"value","label":"OP2_1","signal":"SRC2Value","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.7428300355800763,"anchorY":0.7005304999313556,"x":0.7428300355800763,"y":0.7312997468902831},{"id":"probe_38","type":"value","label":"CONST_1","signal":"CONST","format":"hex","width":8,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.7946343779677113,"anchorY":0.6591719164456233,"x":0.7951092117758785,"y":0.6618244363395226},{"id":"probe_39","type":"value","label":"RegSel_1","signal":"RegSel","format":"binary","width":1,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.8137939221272554,"anchorY":0.6260154177718833,"x":0.8387939221272555,"y":0.6260154177718833},{"id":"probe_40","type":"value","label":"WE_1","signal":"WE","format":"binary","width":1,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4641500474833808,"anchorY":0.27057775198938994,"x":0.46462488129154794,"y":0.28251409151193635},{"id":"probe_41","type":"value","label":"Dest_1","signal":"Dest","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.4926400759734093,"anchorY":0.1976334549071618,"x":0.49311490978157646,"y":0.17243451591511935},{"id":"probe_42","type":"value","label":"DataWrite_1","signal":"DataWrite","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.9774453941120608,"anchorY":0.5358297413793104,"x":0.9551282051282052,"y":0.5358297413793104},{"id":"probe_43","type":"value","label":"OP_1","signal":"OP","format":"binary","width":2,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.9560778727445394,"anchorY":0.35811090848806365,"x":0.9556030389363722,"y":0.35147960875331563},{"id":"probe_44","type":"value","label":"ADD","signal":"ADD","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.9090693257359924,"anchorY":0.23874751326259946,"x":0.9095441595441596,"y":0.20559101458885942},{"id":"probe_45","type":"value","label":"SUB","signal":"SUB","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.9062203228869895,"anchorY":0.36076342838196285,"x":0.9057454890788225,"y":0.32628066976127323},{"id":"probe_46","type":"value","label":"AND","signal":"AND","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.9090693257359924,"anchorY":0.47880056366047746,"x":0.8886514719848053,"y":0.47747430371352784},{"id":"probe_47","type":"value","label":"OR","signal":"OR","format":"hex","width":8,"fontSize":18,"extensionEnabled":true,"lineWidth":5,"anchorX":0.9100189933523267,"anchorY":0.5981639588859416,"x":0.8886514719848053,"y":0.5981639588859416},{"id":"probe_48","type":"value","label":"CONST_2","signal":"CONST","format":"signed","width":8,"fontSize":18,"extensionEnabled":false,"lineWidth":2,"anchorX":0.036799620132953466,"anchorY":0.14988809681697612,"x":0.036799620132953466,"y":0.14988809681697612}]}</script>
+
+<script>
+(() => {
+  'use strict';
+
+  const probeMap = JSON.parse(document.getElementById('probeMap').textContent);
+  const IMAGE_URL = probeMap.imageSrc;
+
+  const REG = {R0:0,R1:1,R2:2,R3:3};
+  const REGNAME = ['R0','R1','R2','R3'];
+  const ALU_OP = {ADD:0,SUB:1,AND:2,OR:3};
+  const ALU_NAME = ['ADD','SUB','AND','OR'];
+  // Canonical branch IDs from the ADEL lecture + Python assembler.
+  const BR_OP = {BEQ:0,BNE:1,BLT:2,BGT:3};
+  const BR_NAME = ['BEQ','BNE','BLT','BGT'];
+
+  const examples = {
+    multiply:
+`# Multiplication using repeated addition, R0 * R1 = R2
+ADDI R0, R0, 15
+ADDI R1, R1, 7
+BEQ  R1, 4
+ADD  R2, R2, R0
+SUBI R1, R1, 1
+BNE  R1, -2
+BEQ  R1, 0`,
+    divide:
+`# Division using repeated subtraction, R0/R1 = R2 remainder R0
+ADDI R0, R0, 17
+ADDI R1, R1, 5
+SUB  R3, R0, R1
+BLT  R3, 4
+ADDI R2, R2, 1
+SUB  R0, R0, R1
+BGT  R1, -4
+BLT  R3, 0`,
+    fibonacci:
+`# Calculate the nth Fibonacci number stored at R0; result appears on R3
+ADDI R0, R0, 8
+ADDI R2, R2, 1
+ADDI R3, R2, 0
+SUBI R0, R0, 1
+BEQ  R0, 5
+ADD  R3, R1, R2
+ADDI R1, R2, 0
+ADDI R2, R3, 0
+BNE  R0, -5
+BEQ  R0, 0`
+  };
+
+  const els = {
+    app:document.getElementById('app'),
+    source:document.getElementById('source'),
+    exampleSelect:document.getElementById('exampleSelect'),
+    probeAnimationToggle:document.getElementById('probeAnimationToggle'),
+    resetBtn:document.getElementById('resetBtn'),
+    stepBtn:document.getElementById('stepBtn'),
+    asmStatus:document.getElementById('asmStatus'),
+    machineBody:document.getElementById('machineBody'),
+    machineWrap:document.querySelector('.machine-wrap'),
+    traceBody:document.getElementById('traceBody'),
+    image:document.getElementById('datapathImage'),
+    imageError:document.getElementById('imageError'),
+    stage:document.getElementById('stage'),
+    overlay:document.getElementById('overlay'),
+  };
+
+  let memory = new Uint16Array(256);
+  let rf = new Uint8Array(4);
+  let pc = 0;
+  let cycle = 0;
+  let program = [];
+  let programLength = 0;
+  let trace = [];
+  let signals = null;
+  let imageNaturalW = 0;
+  let imageNaturalH = 0;
+  let baseImageW = 0;
+  const pendingRegisterFlashes = new Set();
+  const previousProbeValues = new Map();
+  let probeAnimationsEnabled = true;
+
+  const signalDescriptions = {
+    instructionMemory:'Instruction ROM contents produced by the live assembler.',
+    PC:'Current 8-bit program counter.',
+    Inst:'Current 16-bit instruction read from ROM at PC.',
+    WE:'Write-enable bit: 1 writes a register; 0 selects a branch instruction.',
+    OP:'2-bit operation code. ALU: ADD/SUB/AND/OR; branch: EQ/NE/LT/GT.',
+    RegSel:'Second-operand select: 0 uses CONST; 1 uses register SRC2.',
+    Dest:'2-bit destination-register selector.',
+    SRC1:'2-bit selector for the first source register.',
+    SRC2:'2-bit selector for the second source register.',
+    CONST:'Low 8 instruction bits used as immediate or branch displacement.',
+    R0:'Current contents of register R0.',
+    R1:'Current contents of register R1.',
+    R2:'Current contents of register R2.',
+    R3:'Current contents of register R3.',
+    OP1:'First ALU/comparator operand: register selected by SRC1.',
+    SRC2Value:'Raw register-file output selected by SRC2, before the RegSel multiplexer.',
+    OP2:'Second ALU operand after RegSel: selected register or CONST.',
+    ADD:'8-bit OP1 + OP2 result.',
+    SUB:'8-bit OP1 - OP2 result.',
+    AND:'Bitwise OP1 AND OP2 result.',
+    OR:'Bitwise OP1 OR OP2 result.',
+    DataWrite:'ALU result selected by OP and routed back to the register file.',
+    WE0:'Write enable for R0.',
+    WE1:'Write enable for R1.',
+    WE2:'Write enable for R2.',
+    WE3:'Write enable for R3.',
+    GT:'Signed comparison: OP1 > 0.',
+    NE:'Comparison: OP1 is not zero.',
+    EQ:'Comparison: OP1 equals zero.',
+    LT:'Signed comparison: OP1 < 0.',
+    WEprime:'Inverted write enable; active during branch instructions.',
+    EQtrue:'Branch condition term for BEQ.',
+    NEtrue:'Branch condition term for BNE.',
+    LTtrue:'Branch condition term for BLT.',
+    GTtrue:'Branch condition term for BGT.',
+    OffsetSel:'Branch-taken signal selecting CONST instead of +1 for the PC.',
+    offset:'Value added to PC: +1 normally, or signed CONST when branch is taken.'
+  };
+
+  function probeTooltip(probe){
+    return signalDescriptions[probe.signal] || 'Live datapath signal.';
+  }
+
+  function byte(n){ return ((Number(n) % 256) + 256) % 256; }
+  function signed8(n){ n &= 0xff; return n >= 128 ? n - 256 : n; }
+  function hex(n,digits){ return (Number(n) >>> 0).toString(16).toUpperCase().padStart(digits,'0').slice(-digits); }
+  function bits(n,width){ return (Number(n) >>> 0).toString(2).padStart(width,'0').slice(-width); }
+  function regName(i){ return REGNAME[i & 3]; }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+  function stripComment(line){
+    return line.replace(/#.*$/,'').replace(/\/\/.*$/,'').replace(/;.*$/,'').trim();
+  }
+
+  function parseNumber(token){
+    const t = token.trim();
+    if (/^[+-]?0x[0-9a-f]+$/i.test(t)) {
+      const sign = t.startsWith('-') ? -1 : 1;
+      return sign * parseInt(t.replace(/^[+-]?0x/i,''),16);
+    }
+    if (/^[+-]?0b[01]+$/i.test(t)) {
+      const sign = t.startsWith('-') ? -1 : 1;
+      return sign * parseInt(t.replace(/^[+-]?0b/i,''),2);
+    }
+    if (/^[+-]?\d+$/.test(t)) return parseInt(t,10);
+    return null;
+  }
+
+  function parseReg(token,lineNo){
+    const key = token.trim().toUpperCase();
+    if (!(key in REG)) throw new Error(`Line ${lineNo}: unknown register "${token}". Use R0-R3.`);
+    return REG[key];
+  }
+
+  // Same 16-bit encoding as assembler.py, with labels as a convenience extension.
+  function assemble(source){
+    const lines = source.replace(/\r/g,'').split('\n');
+    const labels = new Map();
+    const pending = [];
+    let addr = 0;
+
+    lines.forEach((raw,index) => {
+      let text = stripComment(raw);
+      if (!text) return;
+
+      while (true) {
+        const m = text.match(/^([A-Za-z_]\w*):\s*(.*)$/);
+        if (!m) break;
+        if (labels.has(m[1])) throw new Error(`Line ${index+1}: duplicate label "${m[1]}".`);
+        labels.set(m[1],addr);
+        text = m[2].trim();
+        if (!text) return;
+      }
+
+      if (addr >= 256) throw new Error(`Line ${index+1}: program exceeds the 256-word ROM.`);
+      pending.push({address:addr,lineNo:index+1,text});
+      addr++;
+    });
+
+    return pending.map(item => {
+      const m = item.text.match(/^([A-Za-z]+)\s*(.*)$/);
+      if (!m) throw new Error(`Line ${item.lineNo}: invalid instruction.`);
+      const mnemonic = m[1].toUpperCase();
+      const args = m[2] ? m[2].split(',').map(x=>x.trim()).filter(Boolean) : [];
+      let word;
+
+      if (mnemonic in BR_OP) {
+        if (args.length !== 2) throw new Error(`Line ${item.lineNo}: ${mnemonic} expects register, offset-or-label.`);
+        const src1 = parseReg(args[0],item.lineNo);
+        let offset;
+        if (labels.has(args[1])) offset = labels.get(args[1]) - item.address;
+        else offset = parseNumber(args[1]);
+        if (offset === null) throw new Error(`Line ${item.lineNo}: unknown label or offset "${args[1]}".`);
+        if (offset < -128 || offset > 127) throw new Error(`Line ${item.lineNo}: branch offset ${offset} is outside [-128, 127].`);
+        word = (BR_OP[mnemonic] << 13) | (src1 << 8) | byte(offset);
+      } else {
+        const immediate = mnemonic.endsWith('I');
+        const base = immediate ? mnemonic.slice(0,-1) : mnemonic;
+        if (!(base in ALU_OP)) throw new Error(`Line ${item.lineNo}: unsupported instruction "${mnemonic}".`);
+        if (args.length !== 3) throw new Error(`Line ${item.lineNo}: ${mnemonic} expects three operands.`);
+
+        const dest = parseReg(args[0],item.lineNo);
+        const src1 = parseReg(args[1],item.lineNo);
+        let rs = 0, low8;
+
+        if (immediate) {
+          const imm = parseNumber(args[2]);
+          if (imm === null) throw new Error(`Line ${item.lineNo}: invalid immediate "${args[2]}".`);
+          // The supplied Python assembler practically accepts positive 8-bit literals
+          // such as 153 in addition to signed negatives.
+          if (imm < -128 || imm > 255) throw new Error(`Line ${item.lineNo}: immediate ${imm} does not fit the supported 8-bit literal range [-128,255].`);
+          low8 = byte(imm);
+        } else {
+          rs = 1;
+          low8 = parseReg(args[2],item.lineNo);
+        }
+
+        word = 0x8000 | (ALU_OP[base] << 13) | (rs << 12) | (dest << 10) | (src1 << 8) | low8;
+      }
+
+      return {...item,word};
+    });
+  }
+
+  function decode(word){
+    const WE = (word >>> 15) & 1;
+    const OP = (word >>> 13) & 3;
+    const RegSel = (word >>> 12) & 1;
+    const Dest = (word >>> 10) & 3;
+    const SRC1 = (word >>> 8) & 3;
+    const CONST = word & 0xff;
+    const SRC2 = word & 3;
+    const text = WE
+      ? `${ALU_NAME[OP]}${RegSel ? '' : 'I'} ${regName(Dest)}, ${regName(SRC1)}, ${RegSel ? regName(SRC2) : signed8(CONST)}`
+      : `${BR_NAME[OP]} ${regName(SRC1)}, ${signed8(CONST)}`;
+    return {WE,OP,RegSel,Dest,SRC1,SRC2,CONST,text};
+  }
+
+  function evaluate(){
+    const Inst = memory[pc];
+    const d = decode(Inst);
+
+    const R0 = rf[0], R1 = rf[1], R2 = rf[2], R3 = rf[3];
+    const OP1 = rf[d.SRC1];
+    const src2Value = rf[d.SRC2];
+    const OP2 = d.RegSel ? src2Value : d.CONST;
+
+    const ADD = byte(OP1 + OP2);
+    const SUB = byte(OP1 - OP2);
+    const AND = OP1 & OP2;
+    const OR = OP1 | OP2;
+    const DataWrite = [ADD,SUB,AND,OR][d.OP];
+
+    const WE0 = d.WE && d.Dest === 0 ? 1 : 0;
+    const WE1 = d.WE && d.Dest === 1 ? 1 : 0;
+    const WE2 = d.WE && d.Dest === 2 ? 1 : 0;
+    const WE3 = d.WE && d.Dest === 3 ? 1 : 0;
+
+    const signedOp1 = signed8(OP1);
+    const GT = signedOp1 > 0 ? 1 : 0;
+    const NE = OP1 !== 0 ? 1 : 0;
+    const EQ = OP1 === 0 ? 1 : 0;
+    const LT = signedOp1 < 0 ? 1 : 0;
+
+    const WEprime = d.WE ? 0 : 1;
+    const EQtrue = WEprime && d.OP === 0 && EQ ? 1 : 0;
+    const NEtrue = WEprime && d.OP === 1 && NE ? 1 : 0;
+    const LTtrue = WEprime && d.OP === 2 && LT ? 1 : 0;
+    const GTtrue = WEprime && d.OP === 3 && GT ? 1 : 0;
+    const OffsetSel = (EQtrue || NEtrue || LTtrue || GTtrue) ? 1 : 0;
+    const offset = OffsetSel ? d.CONST : 1;
+    const nextPC = byte(pc + signed8(offset));
+
+    const sourceItem = program.find(x=>x.address===pc);
+    const sourceText = sourceItem ? sourceItem.text : d.text;
+
+    return {
+      instructionMemory:memory,
+      programLength,
+      PC:pc,Inst,
+      WE:d.WE,OP:d.OP,RegSel:d.RegSel,Dest:d.Dest,SRC1:d.SRC1,SRC2:d.SRC2,CONST:d.CONST,
+      R0,R1,R2,R3,OP1,SRC2Value:src2Value,OP2,ADD,SUB,AND,OR,DataWrite,
+      WE0,WE1,WE2,WE3,
+      GT,NE,EQ,LT,WEprime,EQtrue,NEtrue,LTtrue,GTtrue,OffsetSel,offset,nextPC,
+      decoded:d,sourceText
+    };
+  }
+
+  function formatSignal(value,probe){
+    const width = Math.max(1,Number(probe.width)||1);
+    const mask = width >= 32 ? 0xffffffff : (Math.pow(2,width)-1);
+    const unsigned = Number(value) & mask;
+    switch (probe.format) {
+      case 'binary':
+        return bits(unsigned,width); // intentionally no 0b prefix
+      case 'signed':
+        if (width === 8) return String(signed8(unsigned));
+        if (width < 32) {
+          const signBit = Math.pow(2,width-1);
+          return String(unsigned >= signBit ? unsigned - Math.pow(2,width) : unsigned);
+        }
+        return String(unsigned|0);
+      case 'unsigned':
+        return String(unsigned >>> 0);
+      case 'bool':
+        return unsigned ? 'true' : 'false';
+      case 'hex':
+      default:
+        return '0x' + hex(unsigned,Math.max(1,Math.ceil(width/4)));
+    }
+  }
+
+  function resetState(){
+    previousProbeValues.clear();
+    rf = new Uint8Array(4);
+    pc = 0;
+    cycle = 0;
+    trace = [];
+    render();
+  }
+
+  let liveAssembleTimer = null;
+  let sourceIsValid = true;
+
+  function applyAssembledProgram(result,{reset=true}={}){
+    memory = new Uint16Array(256);
+    previousProbeValues.clear();
+    result.forEach(item => memory[item.address] = item.word);
+    program = result;
+    programLength = result.length;
+    sourceIsValid = true;
+    els.stepBtn.disabled = false;
+
+    if (reset) {
+      rf = new Uint8Array(4);
+      pc = 0;
+      cycle = 0;
+      trace = [];
+    }
+
+    els.asmStatus.className = 'status good';
+    els.asmStatus.textContent = `Valid · ${programLength} instruction${programLength===1?'':'s'} · machine code and ROM updated live.`;
+    render();
+  }
+
+  function liveAssemble({reset=true}={}){
+    try {
+      const result = assemble(els.source.value);
+      applyAssembledProgram(result,{reset});
+    } catch (err) {
+      sourceIsValid = false;
+      els.stepBtn.disabled = true;
+      els.asmStatus.className = 'status bad';
+      els.asmStatus.textContent = err.message || String(err);
+      // Keep the last valid ROM/state visible, but make it impossible to execute
+      // while the source contains an error.
+      renderMachine();
+    }
+  }
+
+  function scheduleLiveAssemble(){
+    clearTimeout(liveAssembleTimer);
+    liveAssembleTimer = setTimeout(() => liveAssemble({reset:true}), 110);
+  }
+
+  function step(){
+    if (!sourceIsValid) return;
+    signals = evaluate();
+    const beforePC = pc;
+    let effect;
+
+    if (signals.WE) {
+      const dest = signals.Dest;
+      const before = rf[dest];
+      rf[dest] = signals.DataWrite;
+      if (before !== signals.DataWrite) pendingRegisterFlashes.add(dest);
+      effect = `${regName(dest)} ${hex(before,2)}→${hex(signals.DataWrite,2)}; PC ${hex(beforePC,2)}→${hex(signals.nextPC,2)}`;
+    } else {
+      effect = `PC ${hex(beforePC,2)}→${hex(signals.nextPC,2)} (${signals.OffsetSel ? 'branch taken' : 'not taken'})`;
+    }
+
+    pc = signals.nextPC;
+    trace.unshift({cycle,pc:beforePC,instruction:signals.sourceText,effect});
+    if (trace.length > 300) trace.length = 300;
+    cycle++;
+    render();
+  }
+
+  function renderMachine(){
+    els.machineBody.innerHTML = '';
+    let currentRow = null;
+
+    program.forEach(item => {
+      const tr = document.createElement('tr');
+      if (item.address === pc) {
+        tr.className = 'current';
+        currentRow = tr;
+      }
+      tr.innerHTML = `<td class="mono">${hex(item.address,2)}</td><td class="mono">${hex(item.word,4)}</td><td class="mono">${escapeHtml(item.text)}</td>`;
+      els.machineBody.appendChild(tr);
+    });
+
+    if (currentRow && els.machineWrap) {
+      requestAnimationFrame(() => {
+        const target = currentRow.offsetTop
+          - (els.machineWrap.clientHeight / 2)
+          + (currentRow.offsetHeight / 2);
+        els.machineWrap.scrollTo({
+          top: Math.max(0, target),
+          behavior: cycle > 0 ? 'smooth' : 'auto'
+        });
+      });
+    }
+  }
+
+  function renderState(){
+    document.getElementById('stPC').textContent =
+      `0x${hex(pc,2)} (hex), ${pc} (decimal)`;
+
+    for (let i=0;i<4;i++) {
+      const valueEl = document.getElementById('stR'+i);
+      valueEl.textContent =
+        `0x${hex(rf[i],2)} (hex), ${signed8(rf[i])} (decimal)`;
+
+      if (pendingRegisterFlashes.has(i)) {
+        const stateEl = valueEl.closest('.state');
+        if (stateEl) {
+          stateEl.classList.remove('register-flash');
+          // Restart the animation even when the same register changes on
+          // consecutive cycles.
+          void stateEl.offsetWidth;
+          stateEl.classList.add('register-flash');
+          setTimeout(() => stateEl.classList.remove('register-flash'), 800);
+        }
+      }
+    }
+
+    pendingRegisterFlashes.clear();
+  }
+
+  function renderTrace(){
+    els.traceBody.innerHTML = '';
+
+    let nextEffect;
+    if (signals.WE) {
+      nextEffect = `${regName(signals.Dest)} ← 0x${hex(signals.DataWrite,2)}; PC ← 0x${hex(signals.nextPC,2)}`;
+    } else {
+      nextEffect = `PC ← 0x${hex(signals.nextPC,2)} · ${signals.OffsetSel ? 'branch taken' : 'fall through'}`;
+    }
+
+    // The first row is the currently evaluated instruction. It has not yet
+    // crossed the rising edge, while all rows below it are completed cycles.
+    const current = document.createElement('tr');
+    current.className = 'current-cycle';
+    current.innerHTML =
+      `<td class="mono">${cycle} · current</td>` +
+      `<td class="mono">0x${hex(signals.PC,2)}</td>` +
+      `<td class="mono">0x${hex(signals.Inst,4)} · ${escapeHtml(signals.sourceText)}</td>` +
+      `<td class="mono">${escapeHtml(nextEffect)}</td>`;
+    els.traceBody.appendChild(current);
+
+    trace.slice(0,99).forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="mono">${t.cycle}</td>` +
+        `<td class="mono">0x${hex(t.pc,2)}</td>` +
+        `<td class="mono">${escapeHtml(t.instruction)}</td>` +
+        `<td class="mono">${escapeHtml(t.effect)}</td>`;
+      els.traceBody.appendChild(tr);
+    });
+
+    // Keep the live row in view as the history grows.
+    const traceWrap = els.traceBody.closest('.trace-wrap');
+    if (traceWrap) traceWrap.scrollTop = 0;
+  }
+
+
+  function renderRomProbe(probe,parent){
+    const box = document.createElement('div');
+    box.className = 'probe-array';
+    box.title = probeTooltip(probe);
+    box.setAttribute('aria-label', probeTooltip(probe));
+    box.style.left = (probe.x * 100) + '%';
+    box.style.top = (probe.y * 100) + '%';
+    box.style.width = (probe.boxW * 100) + '%';
+    box.style.height = (probe.boxH * 100) + '%';
+
+    const grid = document.createElement('div');
+    grid.className = 'rom-grid';
+    grid.style.gridTemplateColumns = `repeat(${probe.cols},minmax(0,1fr))`;
+    grid.style.gridTemplateRows = `repeat(${probe.rows},minmax(0,1fr))`;
+
+    const count = Math.min(probe.rows * probe.cols,256);
+    for (let addr=0; addr<count; addr++) {
+      const cell = document.createElement('div');
+      cell.className = 'rom-cell' + (addr === signals.PC ? ' current' : '');
+      cell.style.fontSize = Math.max(7,Number(probe.fontSize)||9) + 'px';
+      cell.textContent = hex(memory[addr],4);
+      const item = program.find(x=>x.address===addr);
+      cell.title = `0x${hex(addr,2)}: ${hex(memory[addr],4)}${item ? ' · '+item.text : ''}`;
+      grid.appendChild(cell);
+    }
+    box.appendChild(grid);
+    parent.appendChild(box);
+  }
+
+  function renderProbes(){
+    if (!signals) signals = evaluate();
+
+    // Probe geometry is expressed entirely as percentages of the stage.
+    // Therefore probes can be created before the remote image has loaded and
+    // automatically move into the correct locations as soon as the image
+    // establishes the stage height.
+    els.overlay.style.zIndex = '1000';
+    els.overlay.style.display = 'block';
+    els.overlay.style.visibility = 'visible';
+    els.overlay.innerHTML = '';
+
+    const lineSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    lineSvg.classList.add('probe-lines');
+    lineSvg.setAttribute('viewBox','0 0 100 100');
+    lineSvg.setAttribute('preserveAspectRatio','none');
+    els.overlay.appendChild(lineSvg);
+
+    probeMap.probes.forEach(probe => {
+      if (probe.type === 'array') {
+        if (probe.signal === 'instructionMemory') renderRomProbe(probe,els.overlay);
+        return;
+      }
+
+      if (!(probe.signal in signals)) return;
+
+      if (probe.extensionEnabled) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', String(probe.anchorX * 100));
+        line.setAttribute('y1', String(probe.anchorY * 100));
+        line.setAttribute('x2', String(probe.x * 100));
+        line.setAttribute('y2', String(probe.y * 100));
+        line.setAttribute('stroke', 'var(--probe-border)');
+        line.setAttribute('stroke-width', String(Math.max(1,Number(probe.lineWidth)||2)));
+        line.setAttribute('vector-effect','non-scaling-stroke');
+        line.setAttribute('stroke-linecap','round');
+        lineSvg.appendChild(line);
+      }
+
+      const value = document.createElement('div');
+      const displayedValue = formatSignal(signals[probe.signal],probe);
+      const previousValue = previousProbeValues.get(probe.id);
+      const changed = probeAnimationsEnabled &&
+        previousValue !== undefined &&
+        previousValue !== displayedValue;
+
+      value.className = 'probe-value' + (changed ? ' probe-flash' : '');
+      value.style.left = (probe.x * 100) + '%';
+      value.style.top = (probe.y * 100) + '%';
+      value.style.fontSize = Math.max(8,Number(probe.fontSize)||12) + 'px';
+      value.textContent = displayedValue;
+      value.title = probeTooltip(probe);
+      value.setAttribute('aria-label', probeTooltip(probe));
+      els.overlay.appendChild(value);
+
+      previousProbeValues.set(probe.id, displayedValue);
+    });
+  }
+
+  function render(){
+    signals = evaluate();
+    renderState();
+    renderMachine();
+    renderTrace();
+    renderProbes();
+  }
+
+  function fitDatapath(){
+    // The stage is always 100% of the datapath panel. The image remains in
+    // normal document flow and therefore defines the stage height. No
+    // JavaScript pixel geometry is needed for probe placement.
+    els.image.style.width = '100%';
+    els.image.style.height = 'auto';
+    els.image.style.display = 'block';
+    els.image.style.opacity = '1';
+    els.image.style.position = 'relative';
+    els.image.style.zIndex = '0';
+    els.overlay.style.zIndex = '1000';
+    renderProbes();
+  }
+
+  function initializeDatapath(){
+    els.imageError.hidden = true;
+    els.imageError.style.display = 'none';
+    els.stage.hidden = false;
+    els.stage.style.display = 'block';
+
+    if (els.image.complete && els.image.naturalWidth > 0) {
+      imageNaturalW = els.image.naturalWidth;
+      imageNaturalH = els.image.naturalHeight;
+    }
+
+    if (!signals) signals = evaluate();
+    fitDatapath();
+    return true;
+  }
+
+  function forceProbeRender(){
+    if (!signals) signals = evaluate();
+    fitDatapath();
+  }
+
+  function scheduleStartupProbeRenders(){
+    // Probes are already present before the image request is made. These
+    // follow-up passes only refresh values after late layout/font events.
+    [0, 80, 250, 700].forEach(delay => setTimeout(forceProbeRender,delay));
+    requestAnimationFrame(forceProbeRender);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(forceProbeRender).catch(()=>{});
+    }
+  }
+
+  els.image.addEventListener('load',() => {
+    imageNaturalW = els.image.naturalWidth;
+    imageNaturalH = els.image.naturalHeight;
+    initializeDatapath();
+  });
+
+  els.image.addEventListener('error',() => {
+    els.imageError.hidden = false;
+    els.imageError.style.display = 'grid';
+  });
+
+  els.probeAnimationToggle.addEventListener('change',() => {
+    probeAnimationsEnabled = els.probeAnimationToggle.checked;
+
+    if (!probeAnimationsEnabled) {
+      document.querySelectorAll('.probe-flash').forEach(el => el.classList.remove('probe-flash'));
+    }
+
+    // Refresh the stored baseline so re-enabling the animation does not
+    // create a false flash from an old probe value.
+    renderProbes();
+  });
+
+  els.source.addEventListener('input',scheduleLiveAssemble);
+  els.exampleSelect.addEventListener('change',() => {
+    els.source.value = examples[els.exampleSelect.value];
+    liveAssemble({reset:true});
+    forceProbeRender();
+  });
+  els.resetBtn.addEventListener('click',resetState);
+  els.stepBtn.addEventListener('click',step);
+
+  document.addEventListener('keydown',e => {
+    if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      step();
+    }
+  });
+
+  window.addEventListener('resize',() => {
+    clearTimeout(window.__adelResizeTimer);
+    window.__adelResizeTimer = setTimeout(renderProbes,80);
+  });
+
+  els.source.value = examples.multiply;
+  liveAssemble({reset:true});
+  signals = evaluate();
+
+  // Build the probe DOM first. Its positions are percentages, so it does not
+  // depend on the external image having finished loading.
+  renderProbes();
+  els.image.src = IMAGE_URL;
+  initializeDatapath();
+  scheduleStartupProbeRenders();
+
+  window.addEventListener('load',forceProbeRender);
+})();
+</script>
+</body>
+</html>
